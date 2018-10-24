@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.NoSuchElementException;
 
-
 public class BinarySearchTree<T extends Comparable<? super T>> implements SortedSet<T> {
 
 	private Node root;
@@ -27,36 +26,38 @@ public class BinarySearchTree<T extends Comparable<? super T>> implements Sorted
 	 */
 	@Override
 	public boolean add(T item) {
-		// TODO Auto-generated method stub
+		
 		Node nodeToAdd = new Node(item);
 		Node currentNode = root;
 		if (root == null) {
 			root = nodeToAdd;
 			size++;
 		} else {
-			
-			while (true) { //As long as a tree is available
-				
-				int compare = (currentNode.data).compareTo(item); 
-				if (compare < 0) { //Look at the right side of the tree
+
+			while (true) { // As long as a tree is available
+
+				int compare = (currentNode.data).compareTo(item);
+				if (compare < 0) { // Look at the right side of the tree
 					if (currentNode.right == null) {
 						currentNode.right = nodeToAdd;
+						nodeToAdd.parent = currentNode;
 						size++;
-						break; //Once we the position 
+						break; // Once we the position
 
 					} else {
 						currentNode = currentNode.right;
 					}
 
-				} else if (compare > 0) { //Look at the left side of the tree
+				} else if (compare > 0) { // Look at the left side of the tree
 					if (currentNode.left == null) {
 						currentNode.left = nodeToAdd;
+						nodeToAdd.parent = currentNode;
 						size++;
-						break; //Once we found the position
+						break; // Once we found the position
 					} else {
 						currentNode = currentNode.left;
 					}
-				} else { //If the node is already availabe
+				} else { // If the node is already available
 					return false;
 				}
 
@@ -78,7 +79,6 @@ public class BinarySearchTree<T extends Comparable<? super T>> implements Sorted
 
 	@Override
 	public boolean addAll(Collection<? extends T> items) {
-		// TODO Auto-generated method stub
 		boolean setChanged = false;
 		for (T thingInCollection : items) {
 			boolean addingThings = add(thingInCollection);
@@ -231,7 +231,54 @@ public class BinarySearchTree<T extends Comparable<? super T>> implements Sorted
 	@Override
 	public boolean remove(T item) {
 		// TODO Auto-generated method stub
-		return false;
+		Node toRemove = getNode(item);
+		if (toRemove == null) {
+			return false;
+		}
+		if (numChildren(toRemove) == 0) {
+			if (toRemove.equals(toRemove.parent.left)) {
+				toRemove.parent.left = null; 
+				toRemove.parent = null;
+			}
+			
+			else if(toRemove.equals(toRemove.parent.right)) {
+				toRemove.parent.right = null;
+				toRemove.parent = null;
+			}
+		}
+		
+		else if(numChildren(toRemove) == 1) {
+			if(!toRemove.left.equals(null)) {
+				if(toRemove.equals(toRemove.parent.left)){
+					toRemove.parent.left = toRemove.left; 
+					toRemove.left.parent = toRemove.parent;
+				}
+				if(toRemove.equals(toRemove.parent.right)){
+					toRemove.parent.right = toRemove.left; 
+					toRemove.left.parent = toRemove.parent;
+				}
+			}
+			
+			if(!toRemove.right.equals(null)) {
+				if(toRemove.equals(toRemove.parent.left)){
+					toRemove.parent.left = toRemove.right; 
+					toRemove.right.parent = toRemove.parent;
+				}
+				if(toRemove.equals(toRemove.parent.right)){
+					toRemove.parent.right = toRemove.right; 
+					toRemove.right.parent = toRemove.parent;
+				}
+			}
+		}
+		
+		else if(numChildren(toRemove) == 2) {
+			Node successor = getLeftmostNode(toRemove.right);
+			toRemove.data = successor.data;
+			successor.parent.left = null;
+			successor.parent = null;
+		}
+
+		return true;
 
 	}
 
@@ -248,7 +295,14 @@ public class BinarySearchTree<T extends Comparable<? super T>> implements Sorted
 	@Override
 	public boolean removeAll(Collection<? extends T> items) {
 		// TODO Auto-generated method stub
-		return false;
+		boolean removedAny = false;
+		for (T item : items) {
+			if (remove(item) == true) {
+				removedAny = true;
+			}
+			
+		}
+		return removedAny;
 
 	}
 
@@ -294,61 +348,96 @@ public class BinarySearchTree<T extends Comparable<? super T>> implements Sorted
 		return getRightmostNode(current.right);
 	}
 
+	private int numChildren(Node n) {
+		int numChildren = 0;
+		if (n.left != null)
+			numChildren++;
+		if (n.right != null)
+			numChildren++;
+		return numChildren;
+	}
+
+	public Node getNode(T value) {
+		Node currentNode = root;
+		while (true) {
+			int compare = currentNode.data.compareTo((T) value);
+
+			if (compare > 0) {
+				if (currentNode.left == null) {
+					return null;
+				} else {
+					currentNode = currentNode.left;
+				}
+			} else if (compare < 0) {
+				if (currentNode.right == null) {
+					return null;
+				} else {
+					currentNode = currentNode.right;
+				}
+			}
+
+			else {
+				// if the node is found
+				return currentNode;
+
+			}
+
+		}
+	}
+
 	public class Node {
 		private T data;
 		private Node left;
 		private Node right;
+		private Node parent;
 
 		public Node(T element) {
 			this.data = element;
 			this.left = null;
 			this.right = null;
+			this.parent = null;
 		}
 
 	}
-	
+
 	// Driver for writing this tree to a dot file
-		public void writeDot(String filename)
-		{
-			try {
-				// PrintWriter(FileWriter) will write output to a file
-				PrintWriter output = new PrintWriter(new FileWriter(filename));
+	public void writeDot(String filename) {
+		try {
+			// PrintWriter(FileWriter) will write output to a file
+			PrintWriter output = new PrintWriter(new FileWriter(filename));
 
-				// Set up the dot graph and properties
-				output.println("digraph BST {");
-				output.println("node [shape=record]");
+			// Set up the dot graph and properties
+			output.println("digraph BST {");
+			output.println("node [shape=record]");
 
-				if(root != null)
-					writeDotRecursive(root, output);
-				// Close the graph
-				output.println("}");
-				output.close();
-			}
-			catch(Exception e){e.printStackTrace();}
+			if (root != null)
+				writeDotRecursive(root, output);
+			// Close the graph
+			output.println("}");
+			output.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	// Recursive method for writing the tree to a dot file
+	private void writeDotRecursive(Node n, PrintWriter output) throws Exception {
+		output.println(n.data + "[label=\"<L> |<D> " + n.data + "|<R> \"]");
+		if (n.left != null) {
+			// write the left subtree
+			writeDotRecursive(n.left, output);
+
+			// then make a link between n and the left subtree
+			output.println(n.data + ":L -> " + n.left.data + ":D");
+		}
+		if (n.right != null) {
+			// write the left subtree
+			writeDotRecursive(n.right, output);
+
+			// then make a link between n and the right subtree
+			output.println(n.data + ":R -> " + n.right.data + ":D");
 		}
 
-
-		// Recursive method for writing the tree to  a dot file
-		private void writeDotRecursive(Node n, PrintWriter output) throws Exception
-		{
-			output.println(n.data + "[label=\"<L> |<D> " + n.data + "|<R> \"]");
-			if(n.left != null)
-			{
-				// write the left subtree
-				writeDotRecursive(n.left, output);
-
-				// then make a link between n and the left subtree
-				output.println(n.data + ":L -> " + n.left.data + ":D" );
-			}
-			if(n.right != null)
-			{
-				// write the left subtree
-				writeDotRecursive(n.right, output);
-
-				// then make a link between n and the right subtree
-				output.println(n.data + ":R -> " + n.right.data + ":D" );
-			}
-
-		}
+	}
 
 }
